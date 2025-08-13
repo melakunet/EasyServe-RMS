@@ -1,63 +1,68 @@
-
 package com.easyserve.model;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.List;
+import java.time.LocalTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "restaurants", indexes = {
-        @Index(name = "idx_restaurant_email", columnList = "email"),
-        @Index(name = "idx_restaurant_name", columnList = "name")
+@Table(name = "reservations", indexes = {
+        @Index(name = "idx_reservation_restaurant", columnList = "restaurant_id"),
+        @Index(name = "idx_reservation_customer", columnList = "customer_id"),
+        @Index(name = "idx_reservation_date_time", columnList = "reservationDate, reservationTime")
 })
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Restaurant {
+public class Reservation {
 
     @Id
     @GeneratedValue
     private UUID id;
 
-    @NotBlank
-    @Size(max = 100)
+    @NotNull
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "restaurant_id", nullable = false)
+    private Restaurant restaurant;
+
+    @NotNull
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "customer_id", nullable = false)
+    private Customer customer;
+
+    @NotNull
     @Column(nullable = false)
-    private String name;
+    private LocalDate reservationDate;
 
-    @Email
-    @NotBlank
-    @Size(max = 100)
-    @Column(nullable = false, unique = true)
-    private String email;
-
-    @NotBlank
-    @Size(max = 20)
+    @NotNull
     @Column(nullable = false)
-    private String phone;
+    private LocalTime reservationTime;
 
-    @NotBlank
-    @Size(max = 255)
-    private String address;
-
-    @Column(length = 1000)
-    private String businessHours;
+    @Min(1)
+    @Column(nullable = false)
+    private int partySize;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private SubscriptionPlan subscriptionPlan = SubscriptionPlan.BASIC;
+    private Status status = Status.CONFIRMED;
 
+    @Column(length = 1000)
+    private String specialRequests;
+
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private boolean isActive = true;
+    private Source source = Source.ONLINE;
+
+    private Integer tableNumber;
 
     @CreationTimestamp
     @Column(updatable = false)
@@ -66,32 +71,24 @@ public class Restaurant {
     @UpdateTimestamp
     private LocalDateTime updatedAt;
 
-    // Relationships
-    @OneToMany(mappedBy = "restaurant", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<User> users;
+    public enum Status {
+        CONFIRMED, SEATED, COMPLETED, CANCELLED, NO_SHOW
+    }
 
-    @OneToMany(mappedBy = "restaurant", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Reservation> reservations;
-
-    @OneToMany(mappedBy = "restaurant", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Order> orders;
-
-    @OneToMany(mappedBy = "restaurant", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<MenuItem> menuItems;
+    public enum Source {
+        ONLINE, PHONE, WALK_IN
+    }
 
     @Override
     public String toString() {
-        return "Restaurant{" +
+        return "Reservation{" +
                 "id=" + id +
-                ", name='" + name + '\'' +
-                ", email='" + email + '\'' +
-                ", phone='" + phone + '\'' +
-                ", subscriptionPlan=" + subscriptionPlan +
-                ", isActive=" + isActive +
+                ", date=" + reservationDate +
+                ", time=" + reservationTime +
+                ", partySize=" + partySize +
+                ", status=" + status +
+                ", source=" + source +
+                ", tableNumber=" + tableNumber +
                 '}';
-    }
-
-    public enum SubscriptionPlan {
-        BASIC, PRO, ENTERPRISE
     }
 }
