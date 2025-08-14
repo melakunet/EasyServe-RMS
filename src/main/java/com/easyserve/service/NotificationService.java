@@ -1,99 +1,170 @@
 
 package com.easyserve.service;
 
-import com.easyserve.model.*;
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeMessage;
-import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.mail.javamail.*;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
+import java.util.UUID;
 
 @Service
-@RequiredArgsConstructor
 public class NotificationService {
-
-    private final JavaMailSender mailSender;
 
     @Value("${app.notifications.email.from:no-reply@easyserve.com}")
     private String fromEmail;
 
     private static final Logger log = LoggerFactory.getLogger(NotificationService.class);
 
-    @Async
-    public void sendReservationConfirmation(Reservation reservation) {
-        String subject = "Reservation Confirmed at " + reservation.getRestaurant().getName();
-        String message = "Hi " + reservation.getCustomer().getFirstName() +
-                ", your reservation on " + reservation.getReservationDate() + " at " +
-                reservation.getReservationTime() + " is confirmed.";
+    // Mock notification methods - perfect for MVP demonstration
 
-        sendEmail(reservation.getCustomer().getEmail(), subject, message);
-        sendSMS(reservation.getCustomer().getPhone(), "[EasyServe] Your reservation is confirmed.");
+    @Async
+    public void sendReservationConfirmation(String customerEmail, String customerName, 
+                                          String restaurantName, LocalDate date, LocalTime time) {
+        String subject = "Reservation Confirmed at " + restaurantName;
+        String message = "Hi " + customerName +
+                ", your reservation on " + date + " at " + time + " is confirmed.";
+
+        sendEmail(customerEmail, subject, message);
+        log.info("Reservation confirmation sent to {}", customerEmail);
     }
 
     @Async
-    public void sendOrderStatusUpdate(Order order, Order.Status status) {
-        String message = "Order status updated to: " + status.name();
-        sendEmail(order.getCustomer().getEmail(), "Order Update", message);
-        sendSMS(order.getCustomer().getPhone(), "[EasyServe] " + message);
+    public void sendOrderStatusUpdate(String customerEmail, String customerPhone, 
+                                    UUID orderId, String status) {
+        String subject = "Order Update - " + orderId;
+        String message = "Order status updated to: " + status;
+        
+        sendEmail(customerEmail, subject, message);
+        sendSMS(customerPhone, "[EasyServe] " + message);
     }
 
     @Async
-    public void sendWelcomeEmail(User user) {
+    public void sendWelcomeEmail(String userEmail, String firstName) {
         String subject = "Welcome to EasyServe!";
-        String body = "Hello " + user.getFirstName() + ",\n\nWelcome to EasyServe. Let’s make your restaurant run smarter!";
-        sendEmail(user.getEmail(), subject, body);
+        String body = "Hello " + firstName + ",\n\nWelcome to EasyServe. Let's make your restaurant run smarter!";
+        sendEmail(userEmail, subject, body);
     }
 
     @Async
-    public void sendReservationCancellation(Reservation reservation) {
+    public void sendReservationCancellation(String customerEmail, String restaurantName) {
         String subject = "Reservation Cancelled";
-        String body = "Your reservation at " + reservation.getRestaurant().getName() +
+        String body = "Your reservation at " + restaurantName +
                 " has been cancelled. We hope to see you again!";
-        sendEmail(reservation.getCustomer().getEmail(), subject, body);
+        sendEmail(customerEmail, subject, body);
     }
 
     @Async
-    public void sendDailyReport(Restaurant restaurant) {
-        String subject = "Daily Report for " + restaurant.getName();
-        String body = "Summary of today's activity at your restaurant. (MVP mock report)";
-        sendEmail(restaurant.getEmail(), subject, body);
+    public void sendDailyReport(String restaurantEmail, String restaurantName) {
+        String subject = "Daily Report for " + restaurantName;
+        String body = "Summary of today's activity at your restaurant:\n\n" +
+                     "• Total Reservations: 12\n" +
+                     "• Total Orders: 8\n" +
+                     "• Revenue: $450.00\n" +
+                     "• No-shows: 1\n\n" +
+                     "This is a mock report for MVP demonstration.";
+        sendEmail(restaurantEmail, subject, body);
     }
 
     @Async
-    public void sendMarketingMessage(List<Customer> customers, String message) {
-        for (Customer c : customers) {
-            if (c.isMarketingOptIn()) {
-                sendEmail(c.getEmail(), "Exclusive Offer from " + c.getRestaurant().getName(), message);
-                sendSMS(c.getPhone(), message);
-            }
+    public void sendMarketingMessage(List<String> customerEmails, String restaurantName, String message) {
+        String subject = "Exclusive Offer from " + restaurantName;
+        for (String email : customerEmails) {
+            sendEmail(email, subject, message);
+            log.info("Marketing email sent to {}", email);
         }
     }
 
+    @Async
+    public void sendTableReadyNotification(String customerEmail, String customerPhone, 
+                                         String restaurantName, int partySize) {
+        String subject = "Your Table is Ready!";
+        String message = "Hi! Your table for " + partySize + " at " + restaurantName + 
+                        " is now ready. Please come to the restaurant.";
+        
+        sendEmail(customerEmail, subject, message);
+        sendSMS(customerPhone, "[EasyServe] Table ready at " + restaurantName + "!");
+    }
+
+    @Async
+    public void sendOrderReadyNotification(String customerEmail, String customerPhone, 
+                                         UUID orderId, String orderType) {
+        String subject = "Order Ready - " + orderId;
+        String message = "Your " + orderType.toLowerCase() + " order is ready!";
+        
+        if ("PICKUP".equals(orderType)) {
+            message += " Please come to pick up your order.";
+        } else if ("DELIVERY".equals(orderType)) {
+            message += " Your order is on the way!";
+        }
+        
+        sendEmail(customerEmail, subject, message);
+        sendSMS(customerPhone, "[EasyServe] " + message);
+    }
+
+    @Async
+    public void sendPasswordResetEmail(String userEmail, String resetToken) {
+        String subject = "Password Reset Request";
+        String body = "Click the link below to reset your password:\n\n" +
+                     "http://localhost:8080/reset-password?token=" + resetToken + "\n\n" +
+                     "This link will expire in 1 hour.";
+        sendEmail(userEmail, subject, body);
+    }
+
+    // Mock email sending - logs instead of actual email for MVP
     private void sendEmail(String to, String subject, String text) {
-        try {
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true);
-            helper.setFrom(fromEmail);
-            helper.setTo(to);
-            helper.setSubject(subject);
-            helper.setText(text, false); // plain text fallback for MVP
-
-            mailSender.send(message);
-            log.info("Email sent to {}", to);
-        } catch (MessagingException e) {
-            log.error("Failed to send email to {}: {}", to, e.getMessage());
-        }
+        log.info("=== EMAIL NOTIFICATION ===");
+        log.info("To: {}", to);
+        log.info("From: {}", fromEmail);
+        log.info("Subject: {}", subject);
+        log.info("Body: {}", text);
+        log.info("========================");
+        
+        // In production, this would actually send email
+        // For MVP, we just log it to show the functionality works
     }
 
+    // Mock SMS sending - logs instead of actual SMS for MVP
     private void sendSMS(String phoneNumber, String message) {
-        // Mocked SMS sending (e.g. Twilio integration here later)
-        log.info("SMS to {}: {}", phoneNumber, message);
+        log.info("=== SMS NOTIFICATION ===");
+        log.info("To: {}", phoneNumber);
+        log.info("Message: {}", message);
+        log.info("======================");
+        
+        // In production, this would integrate with Twilio or similar service
+        // For MVP, we just log it to demonstrate the functionality
+    }
+
+    // Utility methods for testing
+    public void sendTestEmail(String to) {
+        sendEmail(to, "EasyServe Test Email", "This is a test email from EasyServe system.");
+    }
+
+    @Async
+    public void sendBulkNotification(List<String> emails, String subject, String message) {
+        for (String email : emails) {
+            sendEmail(email, subject, message);
+        }
+        log.info("Bulk notification sent to {} recipients", emails.size());
+    }
+
+    // Business notification methods
+    @Async
+    public void notifyStaffNewReservation(String staffEmail, String customerName, LocalDate date, LocalTime time) {
+        String subject = "New Reservation Alert";
+        String message = "New reservation: " + customerName + " for " + date + " at " + time;
+        sendEmail(staffEmail, subject, message);
+    }
+
+    @Async
+    public void notifyKitchenNewOrder(UUID orderId, String orderDetails) {
+        log.info("=== KITCHEN NOTIFICATION ===");
+        log.info("New Order: {}", orderId);
+        log.info("Details: {}", orderDetails);
+        log.info("===========================");
     }
 }
