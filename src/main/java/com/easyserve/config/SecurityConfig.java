@@ -1,9 +1,8 @@
 
 package com.easyserve.config;
 
-import com.easyserve.security.JwtTokenProvider;
-import com.easyserve.security.JwtAuthFilter;
-import lombok.RequiredArgsConstructor;
+import com.easyserve.security.UserDetailsServiceImpl;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -15,10 +14,10 @@ import org.springframework.security.config.annotation.authentication.configurati
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
@@ -28,10 +27,10 @@ import java.util.List;
 
 @Configuration
 @EnableMethodSecurity
-@RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final JwtTokenProvider jwtTokenProvider;
+    @Autowired
+    private UserDetailsServiceImpl userDetailsService;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -41,6 +40,7 @@ public class SecurityConfig {
     @Bean
     public AuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
+        authProvider.setUserDetailsService(userDetailsService);
         authProvider.setPasswordEncoder(passwordEncoder());
         return authProvider;
     }
@@ -55,24 +55,37 @@ public class SecurityConfig {
         http
             .csrf(AbstractHttpConfigurer::disable)
             .cors(Customizer.withDefaults())
-            .sessionManagement(session -> session.sessionCreationPolicy(
-                org.springframework.security.config.http.SessionCreationPolicy.STATELESS))
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
+                // Public endpoints - no authentication required
                 .requestMatchers(
                     "/api/public/**",
                     "/api/widget/**",
                     "/api/auth/login",
-                    "/api/auth/register"
+                    "/api/auth/register",
+                    "/api/menu/**",
+                    "/h2-console/**"
                 ).permitAll()
-                .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                .requestMatchers("/api/reservations/**", "/api/orders/**").authenticated()
+                
+                // Admin endpoints - require ADMIN role
+                .requestMatchers("/api/admin/**").hasRole("OWNER")
+                
+                // Protected endpoints - require authentication
+                .requestMatchers(
+                    "/api/reservations/**", 
+                    "/api/orders/**",
+                    "/api/users/**",
+                    "/api/dashboard/**"
+                ).authenticated()
+                
+                // Default: deny all other requests
                 .anyRequest().denyAll()
             )
-            .addFilterBefore(new JwtAuthFilter(jwtTokenProvider),
-                UsernamePasswordAuthenticationFilter.class)
+            .authenticationProvider(authenticationProvider())
             .headers(headers -> headers
                 .frameOptions().sameOrigin()
-                .httpStrictTransportSecurity().disable());
+                .httpStrictTransportSecurity().disable()
+            );
 
         return http.build();
     }
@@ -81,12 +94,30 @@ public class SecurityConfig {
     public CorsFilter corsFilter() {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowCredentials(true);
-        config.setAllowedOrigins(List.of("*")); // TODO: restrict in production
-        config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(List.of("Authorization", "Cache-Control", "Content-Type"));
+        
+        // Allow all origins for development (restrict in production)
+        config.setAllowedOriginPatterns(List.of("*"));
+        
+        // Allow all HTTP methods
+        config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+        
+        // Allow all headers
+        config.setAllowedHeaders(List.of("*"));
+        
+        // Expose headers for frontend
+        config.setExposedHeaders(Arrays.asList("Authorization", "Content-Type"));
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
         return new CorsFilter(source);
+    }
+
+    // Bean for HTTP Basic Authentication (for testing)
+    @Bean
+    public org.springframework.security.web.authentication.www.BasicAuthenticationEntryPoint basicAuthenticationEntryPoint() {
+        org.springframework.security.web.authentication.www.BasicAuthenticationEntryPoint entryPoint = 
+            new org.springframework.security.web.authentication.www.BasicAuthenticationEntryPoint();
+        entryPoint.setRealmName("EasyServe");
+        return entryPoint;
     }
 }
