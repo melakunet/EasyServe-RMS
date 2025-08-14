@@ -97,7 +97,11 @@
         <artifactId>spring-boot-starter-test</artifactId>
         <scope>test</scope>
         <!-- Update Lombok dependency -->
-        <!-- Add these Jackson dependencies -->
+        <dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-validation</artifactId>
+</dependency>
+        <!--  these Jackson dependencies -->
 <dependency>
     <groupId>com.fasterxml.jackson.core</groupId>
     <artifactId>jackson-core</artifactId>
