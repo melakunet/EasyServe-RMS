@@ -4,7 +4,6 @@ package com.easyserve.service;
 
 import com.easyserve.dto.*;
 import com.easyserve.dto.OrderDTO.OrderItemDTO;
-import com.easyserve.dto.KitchenStatsResponse;
 import com.easyserve.model.OrderStatus;
 import com.easyserve.model.OrderType;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,7 +15,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
-import com.easyserve.dto.MenuItemResponse;
+import java.time.Duration;
+
 
 @Service
 public class OrderService {
@@ -135,17 +135,18 @@ public class OrderService {
                 .count();
         
         // Simple average preparation time calculation
-        double avgPrepTime = 25.0; // Mock value
+ double avgPrepTime = 25.0; // Mock value
 
 KitchenStatsResponse response = new KitchenStatsResponse();
 response.setTotalActiveOrders(totalActive);
 response.setOrdersInPreparation(preparing);
 response.setOrdersReady(ready);
 response.setOrdersCompleted(completed);
-response.setAveragePreparationTime(avgPrepTime);
+response.setAveragePreparationTime(Duration.ofMinutes((long) avgPrepTime)); //  Fixed
 response.setTotalOrdersToday(todayOrders.size());
 return response;
     }
+
 
     public List<OrderDTO> getOrderHistory(Long customerId) {
         // Mock customer order history by customer ID
