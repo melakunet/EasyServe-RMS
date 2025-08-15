@@ -2,7 +2,11 @@
 package com.easyserve.model;
 
 public enum ReservationSource {
-    WALK_IN
+    ONLINE,
+    PHONE,
+    WALK_IN,
+    APP,
+    THIRD_PARTY
 }
 
 

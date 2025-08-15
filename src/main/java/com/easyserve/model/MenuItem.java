@@ -1,4 +1,3 @@
-
 package com.easyserve.model;
 
 import jakarta.persistence.*;
@@ -11,7 +10,6 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 @Entity
 @Table(name = "menu_items", indexes = {
@@ -26,8 +24,8 @@ import java.util.UUID;
 public class MenuItem {
 
     @Id
-    @GeneratedValue
-    private UUID id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "restaurant_id", nullable = false)
@@ -45,12 +43,12 @@ public class MenuItem {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal price;
 
-    @Enumerated(EnumType.STRING)
+    @NotBlank
     @Column(nullable = false)
-    private Category category;
+    private String category;
 
     @Column(nullable = false)
-    private boolean isAvailable = true;
+    private Boolean available = true;
 
     @Column
     private Integer preparationTime; // in minutes
@@ -59,7 +57,7 @@ public class MenuItem {
     private String allergies;
 
     @Column(nullable = false)
-    private boolean isPopular = false;
+    private Boolean popular = false;
 
     @CreationTimestamp
     @Column(updatable = false)
@@ -68,10 +66,6 @@ public class MenuItem {
     @UpdateTimestamp
     private LocalDateTime updatedAt;
 
-    public enum Category {
-        APPETIZER, MAIN, DESSERT, BEVERAGE
-    }
-
     @Override
     public String toString() {
         return "MenuItem{" +
@@ -79,8 +73,8 @@ public class MenuItem {
                 ", name='" + name + '\'' +
                 ", price=" + price +
                 ", category=" + category +
-                ", isAvailable=" + isAvailable +
-                ", isPopular=" + isPopular +
+                ", available=" + available +
+                ", popular=" + popular +
                 '}';
     }
 }

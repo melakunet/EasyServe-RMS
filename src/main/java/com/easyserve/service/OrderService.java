@@ -1,17 +1,22 @@
 
 package com.easyserve.service;
 
-import com.easyserve.dto.OrderDTO;
+
+import com.easyserve.dto.*;
+import com.easyserve.dto.OrderDTO.OrderItemDTO;
+import com.easyserve.dto.KitchenStatsResponse;
+import com.easyserve.model.OrderStatus;
+import com.easyserve.model.OrderType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.UUID;
-import java.util.ArrayList;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
+import com.easyserve.dto.MenuItemResponse;
 
 @Service
 public class OrderService {
@@ -20,23 +25,24 @@ public class OrderService {
     private NotificationService notificationService;
 
     // Mock storage for orders (in-memory for MVP)
-    private final Map<UUID, OrderDTO> orders = new ConcurrentHashMap<>();
+    private final Map<Long, OrderDTO> orders = new ConcurrentHashMap<>();
+    private final AtomicLong orderIdGenerator = new AtomicLong(1);
     
     // Mock menu items with prices
-    private final Map<UUID, BigDecimal> menuItemPrices = new ConcurrentHashMap<>();
+    private final Map<Long, BigDecimal> menuItemPrices = new ConcurrentHashMap<>();
 
     public OrderService() {
         // Initialize some mock menu items for testing
-        menuItemPrices.put(UUID.fromString("550e8400-e29b-41d4-a716-446655440001"), new BigDecimal("12.99")); // Burger
-        menuItemPrices.put(UUID.fromString("550e8400-e29b-41d4-a716-446655440002"), new BigDecimal("8.99"));  // Pizza
-        menuItemPrices.put(UUID.fromString("550e8400-e29b-41d4-a716-446655440003"), new BigDecimal("6.99"));  // Salad
-        menuItemPrices.put(UUID.fromString("550e8400-e29b-41d4-a716-446655440004"), new BigDecimal("4.99"));  // Fries
-        menuItemPrices.put(UUID.fromString("550e8400-e29b-41d4-a716-446655440005"), new BigDecimal("2.99"));  // Drink
+        menuItemPrices.put(1L, new BigDecimal("12.99")); // Burger
+        menuItemPrices.put(2L, new BigDecimal("8.99"));  // Pizza
+        menuItemPrices.put(3L, new BigDecimal("6.99"));  // Salad
+        menuItemPrices.put(4L, new BigDecimal("4.99"));  // Fries
+        menuItemPrices.put(5L, new BigDecimal("2.99"));  // Drink
     }
 
     public OrderDTO createOrder(OrderDTO dto) {
         // Generate new order ID
-        UUID orderId = UUID.randomUUID();
+        Long orderId = orderIdGenerator.getAndIncrement();
         dto.setId(orderId);
         
         // Calculate pricing
@@ -48,7 +54,7 @@ public class OrderService {
         dto.setSubtotal(subtotal);
         dto.setTax(tax);
         dto.setTotal(total);
-        dto.setStatus("NEW");
+        dto.setStatus(OrderStatus.PENDING);
         dto.setEstimatedTime(LocalDateTime.now().plusMinutes(30));
         dto.setCreatedAt(LocalDateTime.now());
         dto.setUpdatedAt(LocalDateTime.now());
@@ -67,7 +73,7 @@ public class OrderService {
         return dto;
     }
 
-    public OrderDTO updateOrderStatus(UUID orderId, String newStatus) {
+    public OrderDTO updateOrderStatus(Long orderId, OrderStatus newStatus) {
         OrderDTO order = orders.get(orderId);
         if (order == null) {
             throw new IllegalArgumentException("Order not found: " + orderId);
@@ -81,13 +87,26 @@ public class OrderService {
             order.getCustomerEmail(),
             order.getCustomerPhone(),
             orderId,
-            newStatus
+            newStatus.toString()
         );
 
         return order;
     }
 
-    public List<OrderDTO> getOrdersForKitchen(UUID restaurantId) {
+    public List<OrderDTO> filterOrders(Long restaurantId, OrderStatus status, OrderType type, 
+                                      LocalDateTime from, LocalDateTime to, Long customerId) {
+        return orders.values().stream()
+                .filter(order -> restaurantId == null || order.getRestaurantId().equals(restaurantId))
+                .filter(order -> status == null || order.getStatus().equals(status))
+                .filter(order -> type == null || order.getOrderType().equals(type))
+                .filter(order -> from == null || order.getCreatedAt().isAfter(from))
+                .filter(order -> to == null || order.getCreatedAt().isBefore(to))
+                .filter(order -> customerId == null || order.getCustomerId().equals(customerId))
+                .sorted((o1, o2) -> o2.getCreatedAt().compareTo(o1.getCreatedAt()))
+                .toList();
+    }
+
+    public List<OrderDTO> getOrdersForKitchen(Long restaurantId) {
         // Return active orders for kitchen display
         return orders.values().stream()
                 .filter(order -> order.getRestaurantId().equals(restaurantId))
@@ -96,21 +115,53 @@ public class OrderService {
                 .toList();
     }
 
-    public List<OrderDTO> getOrderHistory(UUID customerId, String customerEmail) {
-        // Mock customer order history by email
+    public KitchenStatsResponse calculateKitchenStats(Long restaurantId) {
+        List<OrderDTO> todayOrders = getTodaysOrders(restaurantId);
+        
+        int totalActive = (int) todayOrders.stream()
+                .filter(order -> isActiveStatus(order.getStatus()))
+                .count();
+        
+        int preparing = (int) todayOrders.stream()
+                .filter(order -> OrderStatus.PREPARING.equals(order.getStatus()))
+                .count();
+        
+        int ready = (int) todayOrders.stream()
+                .filter(order -> OrderStatus.READY.equals(order.getStatus()))
+                .count();
+        
+        int completed = (int) todayOrders.stream()
+                .filter(order -> OrderStatus.COMPLETED.equals(order.getStatus()))
+                .count();
+        
+        // Simple average preparation time calculation
+        double avgPrepTime = 25.0; // Mock value
+
+KitchenStatsResponse response = new KitchenStatsResponse();
+response.setTotalActiveOrders(totalActive);
+response.setOrdersInPreparation(preparing);
+response.setOrdersReady(ready);
+response.setOrdersCompleted(completed);
+response.setAveragePreparationTime(avgPrepTime);
+response.setTotalOrdersToday(todayOrders.size());
+return response;
+    }
+
+    public List<OrderDTO> getOrderHistory(Long customerId) {
+        // Mock customer order history by customer ID
         return orders.values().stream()
-                .filter(order -> customerEmail.equals(order.getCustomerEmail()))
+                .filter(order -> customerId.equals(order.getCustomerId()))
                 .sorted((o1, o2) -> o2.getCreatedAt().compareTo(o1.getCreatedAt()))
                 .toList();
     }
 
-    public void cancelOrder(UUID orderId, String reason) {
+    public void cancelOrder(Long orderId, String reason) {
         OrderDTO order = orders.get(orderId);
         if (order == null) {
             throw new IllegalArgumentException("Order not found: " + orderId);
         }
 
-        order.setStatus("CANCELLED");
+        order.setStatus(OrderStatus.CANCELLED);
         order.setSpecialInstructions(
             (order.getSpecialInstructions() != null ? order.getSpecialInstructions() + " | " : "") + 
             "Cancelled: " + reason
@@ -126,7 +177,7 @@ public class OrderService {
         );
     }
 
-    public OrderDTO getOrderById(UUID orderId) {
+    public OrderDTO getOrderById(Long orderId) {
         OrderDTO order = orders.get(orderId);
         if (order == null) {
             throw new IllegalArgumentException("Order not found: " + orderId);
@@ -134,7 +185,7 @@ public class OrderService {
         return order;
     }
 
-    public List<OrderDTO> getTodaysOrders(UUID restaurantId) {
+    public List<OrderDTO> getTodaysOrders(Long restaurantId) {
         LocalDateTime startOfDay = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0);
         LocalDateTime endOfDay = LocalDateTime.now().withHour(23).withMinute(59).withSecond(59);
 
@@ -146,7 +197,7 @@ public class OrderService {
                 .toList();
     }
 
-    public BigDecimal calculateSubtotal(List<OrderDTO.OrderItemDTO> items) {
+    public BigDecimal calculateSubtotal(List<OrderItemDTO> items) {
         if (items == null || items.isEmpty()) {
             return BigDecimal.ZERO;
         }
@@ -159,29 +210,21 @@ public class OrderService {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
-    public List<OrderDTO> getOrdersByStatus(UUID restaurantId, String status) {
-        return orders.values().stream()
-                .filter(order -> order.getRestaurantId().equals(restaurantId))
-                .filter(order -> status.equals(order.getStatus()))
-                .sorted((o1, o2) -> o1.getCreatedAt().compareTo(o2.getCreatedAt()))
-                .toList();
-    }
-
     // Business helper methods
-    private boolean isActiveStatus(String status) {
-        return "NEW".equals(status) || 
-               "CONFIRMED".equals(status) || 
-               "PREPARING".equals(status);
+    private boolean isActiveStatus(OrderStatus status) {
+        return OrderStatus.PENDING.equals(status) || 
+               OrderStatus.CONFIRMED.equals(status) || 
+               OrderStatus.PREPARING.equals(status);
     }
 
-    public boolean canCancelOrder(UUID orderId) {
+    public boolean canCancelOrder(Long orderId) {
         OrderDTO order = orders.get(orderId);
         return order != null && 
-               ("NEW".equals(order.getStatus()) || "CONFIRMED".equals(order.getStatus()));
+               (OrderStatus.PENDING.equals(order.getStatus()) || OrderStatus.CONFIRMED.equals(order.getStatus()));
     }
 
-    public void markOrderReady(UUID orderId) {
-        updateOrderStatus(orderId, "READY");
+    public void markOrderReady(Long orderId) {
+        updateOrderStatus(orderId, OrderStatus.READY);
         
         OrderDTO order = orders.get(orderId);
         if (order != null) {
@@ -189,31 +232,31 @@ public class OrderService {
                 order.getCustomerEmail(),
                 order.getCustomerPhone(),
                 orderId,
-                order.getOrderType()
+                order.getOrderType().toString()
             );
         }
     }
 
-    public void completeOrder(UUID orderId) {
-        updateOrderStatus(orderId, "COMPLETED");
+    public void completeOrder(Long orderId) {
+        updateOrderStatus(orderId, OrderStatus.COMPLETED);
     }
 
     // Analytics methods
-    public int getTotalOrdersToday(UUID restaurantId) {
+    public int getTotalOrdersToday(Long restaurantId) {
         return getTodaysOrders(restaurantId).size();
     }
 
-    public BigDecimal getTotalRevenueToday(UUID restaurantId) {
+    public BigDecimal getTotalRevenueToday(Long restaurantId) {
         return getTodaysOrders(restaurantId).stream()
-                .filter(order -> "COMPLETED".equals(order.getStatus()))
+                .filter(order -> OrderStatus.COMPLETED.equals(order.getStatus()))
                 .map(OrderDTO::getTotal)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
-    public BigDecimal getAverageOrderValue(UUID restaurantId) {
+    public BigDecimal getAverageOrderValue(Long restaurantId) {
         List<OrderDTO> completedOrders = orders.values().stream()
                 .filter(order -> order.getRestaurantId().equals(restaurantId))
-                .filter(order -> "COMPLETED".equals(order.getStatus()))
+                .filter(order -> OrderStatus.COMPLETED.equals(order.getStatus()))
                 .toList();
 
         if (completedOrders.isEmpty()) {

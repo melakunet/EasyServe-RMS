@@ -3,73 +3,78 @@ package com.easyserve.controller;
 
 import com.easyserve.dto.*;
 import com.easyserve.model.Reservation;
+import com.easyserve.model.Status;
 import com.easyserve.service.ReservationService;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.*;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
-import java.util.UUID;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/reservations")
-@RequiredArgsConstructor
 public class ReservationController {
 
-    private final ReservationService reservationService;
+    @Autowired
+    private ReservationService reservationService;
 
     @PreAuthorize("hasRole('OWNER') or hasRole('MANAGER') or hasRole('STAFF')")
     @PostMapping
     public ResponseEntity<ReservationDTO> createReservation(
             @Valid @RequestBody ReservationDTO dto) {
-        Reservation reservation = reservationService.createReservation(dto);
-        return ResponseEntity.status(HttpStatus.CREATED).body(ReservationDTO.from(reservation));
+        ReservationDTO created = reservationService.createReservation(dto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     @GetMapping
     public ResponseEntity<Page<ReservationDTO>> listReservations(
-            @RequestParam UUID restaurantId,
+            @RequestParam Long restaurantId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
-            @RequestParam(required = false) ReservationDTO.Status status,
+            @RequestParam(required = false) String status,
             @RequestParam(required = false) String customerEmail,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "reservationDate,asc") String[] sort) {
+            @RequestParam(defaultValue = "reservationDate") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDir) {
 
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Order.by(sort[0]).with(Order.Direction.fromString(sort[1]))));
-        // For simplicity assume service can handle filtering—add that later
-        Page<ReservationDTO> result = reservationService.getReservationsByDate(restaurantId, from)
-                .stream()
-                .map(ReservationDTO::from)
-                .collect(Collectors.collectingAndThen(Collectors.toList(),
-                        list -> new PageImpl<>(list, pageable, list.size())));
+        Sort sort = sortDir.equalsIgnoreCase("desc") ? 
+            Sort.by(sortBy).descending() : 
+            Sort.by(sortBy).ascending();
+        
+        Pageable pageable = PageRequest.of(page, size, sort);
+        
+        Page<ReservationDTO> result = reservationService.getReservations(
+            restaurantId, from, to, status, customerEmail, pageable);
+        
         return ResponseEntity.ok(result);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ReservationDTO> getReservation(@PathVariable UUID id) {
-        Reservation reservation = reservationService.getReservationById(id);
-        return ResponseEntity.ok(ReservationDTO.from(reservation));
+    public ResponseEntity<ReservationDTO> getReservation(@PathVariable Long id) {
+        ReservationDTO reservation = reservationService.getReservationById(id);
+        return ResponseEntity.ok(reservation);
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<ReservationDTO> updateReservation(
-            @PathVariable UUID id,
+            @PathVariable Long id,
             @Valid @RequestBody ReservationDTO dto) {
-        Reservation updated = reservationService.updateReservation(id, dto);
-        return ResponseEntity.ok(ReservationDTO.from(updated));
+        ReservationDTO updated = reservationService.updateReservation(id, dto);
+        return ResponseEntity.ok(updated);
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> cancelReservation(
-            @PathVariable UUID id,
+            @PathVariable Long id,
             @RequestParam(required = false) String reason) {
         reservationService.cancelReservation(id, reason);
         return ResponseEntity.noContent().build();
@@ -77,28 +82,39 @@ public class ReservationController {
 
     @GetMapping("/availability")
     public ResponseEntity<AvailabilityResponse> checkAvailability(
-            @RequestParam UUID restaurantId,
+            @RequestParam Long restaurantId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.TIME) LocalTime time) {
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.TIME) LocalTime time,
+            @RequestParam(defaultValue = "2") Integer partySize) {
 
-        boolean available = reservationService.checkAvailability(restaurantId, date, time);
-        return ResponseEntity.ok(new AvailabilityResponse(date, time, available));
+        AvailabilityResponse availability = reservationService.checkAvailability(
+            restaurantId, date, time, partySize);
+        return ResponseEntity.ok(availability);
     }
 
     @GetMapping("/today")
     public ResponseEntity<List<ReservationDTO>> getTodayReservations(
-            @RequestParam UUID restaurantId) {
-        List<ReservationDTO> list = reservationService
-                .getReservationsByDate(restaurantId, LocalDate.now())
-                .stream()
-                .map(ReservationDTO::from)
-                .collect(Collectors.toList());
-        return ResponseEntity.ok(list);
+            @RequestParam Long restaurantId) {
+        List<ReservationDTO> reservations = reservationService.getTodayReservations(restaurantId);
+        return ResponseEntity.ok(reservations);
     }
 
     @PutMapping("/{id}/confirm")
-    public ResponseEntity<ReservationDTO> confirmReservation(@PathVariable UUID id) {
-        Reservation confirmed = reservationService.confirmReservation(id);
-        return ResponseEntity.ok(ReservationDTO.from(confirmed));
+    public ResponseEntity<ReservationDTO> confirmReservation(@PathVariable Long id) {
+        ReservationDTO confirmed = reservationService.confirmReservation(id);
+        return ResponseEntity.ok(confirmed);
+    }
+
+    @PutMapping("/{id}/cancel")
+    public ResponseEntity<ReservationDTO> cancelReservationStatus(@PathVariable Long id) {
+        ReservationDTO cancelled = reservationService.cancelReservationStatus(id);
+        return ResponseEntity.ok(cancelled);
+    }
+
+    @GetMapping("/customer/{email}")
+    public ResponseEntity<List<ReservationDTO>> getCustomerReservations(
+            @PathVariable String email) {
+        List<ReservationDTO> reservations = reservationService.getReservationsByCustomerEmail(email);
+        return ResponseEntity.ok(reservations);
     }
 }

@@ -1,3 +1,4 @@
+
 package com.easyserve.model;
 
 import jakarta.persistence.*;
@@ -10,7 +11,6 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.UUID;
 
 @Entity
 @Table(name = "reservations", indexes = {
@@ -26,8 +26,8 @@ import java.util.UUID;
 public class Reservation {
 
     @Id
-    @GeneratedValue
-    private UUID id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY)
@@ -53,14 +53,14 @@ public class Reservation {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private Status status = Status.CONFIRMED;
+    private ReservationStatus status = ReservationStatus.CONFIRMED;
 
     @Column(length = 1000)
     private String specialRequests;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private Source source = Source.ONLINE;
+    private ReservationSource source = ReservationSource.ONLINE;
 
     private Integer tableNumber;
 
@@ -70,14 +70,6 @@ public class Reservation {
 
     @UpdateTimestamp
     private LocalDateTime updatedAt;
-
-    public enum Status {
-        CONFIRMED, SEATED, COMPLETED, CANCELLED, NO_SHOW
-    }
-
-    public enum Source {
-        ONLINE, PHONE, WALK_IN
-    }
 
     @Override
     public String toString() {

@@ -1,16 +1,20 @@
 
 package com.easyserve.service;
 
+import com.easyserve.dto.AvailabilityResponse;
 import com.easyserve.dto.ReservationDTO;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
-import java.util.UUID;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 import java.time.LocalDateTime;
 
 @Service
@@ -20,7 +24,8 @@ public class ReservationService {
     private NotificationService notificationService;
 
     // Mock storage for reservations (in-memory for MVP)
-    private final Map<UUID, ReservationDTO> reservations = new ConcurrentHashMap<>();
+    private final Map<Long, ReservationDTO> reservations = new ConcurrentHashMap<>();
+    private final AtomicLong reservationIdGenerator = new AtomicLong(1);
 
     public ReservationDTO createReservation(ReservationDTO dto) {
         // Check availability
@@ -29,7 +34,7 @@ public class ReservationService {
         }
 
         // Generate new reservation ID
-        UUID reservationId = UUID.randomUUID();
+        Long reservationId = reservationIdGenerator.getAndIncrement();
         dto.setId(reservationId);
         dto.setStatus("CONFIRMED");
         dto.setSource("ONLINE");
@@ -51,7 +56,7 @@ public class ReservationService {
         return dto;
     }
 
-    public boolean checkAvailability(UUID restaurantId, LocalDate date, LocalTime time) {
+    public boolean checkAvailability(Long restaurantId, LocalDate date, LocalTime time) {
         // Check if any existing reservation conflicts with the requested time
         return reservations.values().stream()
                 .filter(r -> r.getRestaurantId().equals(restaurantId))
@@ -60,7 +65,30 @@ public class ReservationService {
                 .noneMatch(r -> isTimeConflict(r.getReservationTime(), time));
     }
 
-    public ReservationDTO updateReservation(UUID reservationId, ReservationDTO updates) {
+    public AvailabilityResponse checkAvailability(Long restaurantId, LocalDate date, LocalTime time, Integer partySize) {
+        boolean available = checkAvailability(restaurantId, date, time);
+        if (available) {
+            return AvailabilityResponse.available(date, List.of(time));
+        } else {
+            return AvailabilityResponse.unavailable("Time slot not available");
+        }
+    }
+
+    public Page<ReservationDTO> getReservations(Long restaurantId, LocalDate from, LocalDate to, 
+                                               String status, String customerEmail, Pageable pageable) {
+        List<ReservationDTO> filtered = reservations.values().stream()
+                .filter(r -> restaurantId == null || r.getRestaurantId().equals(restaurantId))
+                .filter(r -> from == null || !r.getReservationDate().isBefore(from))
+                .filter(r -> to == null || !r.getReservationDate().isAfter(to))
+                .filter(r -> status == null || status.equals(r.getStatus()))
+                .filter(r -> customerEmail == null || customerEmail.equals(r.getCustomerEmail()))
+                .sorted((r1, r2) -> r1.getReservationDate().compareTo(r2.getReservationDate()))
+                .toList();
+
+        return new PageImpl<>(filtered, pageable, filtered.size());
+    }
+
+    public ReservationDTO updateReservation(Long reservationId, ReservationDTO updates) {
         ReservationDTO reservation = reservations.get(reservationId);
         if (reservation == null) {
             throw new IllegalArgumentException("Reservation not found: " + reservationId);
@@ -87,7 +115,7 @@ public class ReservationService {
         return reservation;
     }
 
-    public void cancelReservation(UUID reservationId, String reason) {
+    public void cancelReservation(Long reservationId, String reason) {
         ReservationDTO reservation = reservations.get(reservationId);
         if (reservation == null) {
             throw new IllegalArgumentException("Reservation not found: " + reservationId);
@@ -107,7 +135,7 @@ public class ReservationService {
         );
     }
 
-    public List<ReservationDTO> getReservationsByDate(UUID restaurantId, LocalDate date) {
+    public List<ReservationDTO> getReservationsByDate(Long restaurantId, LocalDate date) {
         return reservations.values().stream()
                 .filter(r -> r.getRestaurantId().equals(restaurantId))
                 .filter(r -> r.getReservationDate().equals(date))
@@ -115,7 +143,7 @@ public class ReservationService {
                 .toList();
     }
 
-    public ReservationDTO confirmReservation(UUID reservationId) {
+    public ReservationDTO confirmReservation(Long reservationId) {
         ReservationDTO reservation = reservations.get(reservationId);
         if (reservation == null) {
             throw new IllegalArgumentException("Reservation not found: " + reservationId);
@@ -126,7 +154,18 @@ public class ReservationService {
         return reservation;
     }
 
-    public ReservationDTO getReservationById(UUID reservationId) {
+    public ReservationDTO cancelReservationStatus(Long reservationId) {
+        ReservationDTO reservation = reservations.get(reservationId);
+        if (reservation == null) {
+            throw new IllegalArgumentException("Reservation not found: " + reservationId);
+        }
+
+        reservation.setStatus("CANCELLED");
+        reservation.setUpdatedAt(LocalDateTime.now());
+        return reservation;
+    }
+
+    public ReservationDTO getReservationById(Long reservationId) {
         ReservationDTO reservation = reservations.get(reservationId);
         if (reservation == null) {
             throw new IllegalArgumentException("Reservation not found: " + reservationId);
@@ -134,12 +173,19 @@ public class ReservationService {
         return reservation;
     }
 
-    public List<ReservationDTO> getTodaysReservations(UUID restaurantId) {
+    public List<ReservationDTO> getTodayReservations(Long restaurantId) {
         LocalDate today = LocalDate.now();
         return getReservationsByDate(restaurantId, today);
     }
 
-    public List<ReservationDTO> getUpcomingReservations(UUID restaurantId) {
+    public List<ReservationDTO> getReservationsByCustomerEmail(String email) {
+        return reservations.values().stream()
+                .filter(r -> email.equals(r.getCustomerEmail()))
+                .sorted((r1, r2) -> r2.getCreatedAt().compareTo(r1.getCreatedAt()))
+                .toList();
+    }
+
+    public List<ReservationDTO> getUpcomingReservations(Long restaurantId) {
         LocalDate today = LocalDate.now();
         return reservations.values().stream()
                 .filter(r -> r.getRestaurantId().equals(restaurantId))
@@ -157,7 +203,7 @@ public class ReservationService {
                 .toList();
     }
 
-    public List<ReservationDTO> getReservationsByStatus(UUID restaurantId, String status) {
+    public List<ReservationDTO> getReservationsByStatus(Long restaurantId, String status) {
         return reservations.values().stream()
                 .filter(r -> r.getRestaurantId().equals(restaurantId))
                 .filter(r -> status.equals(r.getStatus()))
@@ -165,7 +211,7 @@ public class ReservationService {
                 .toList();
     }
 
-    public void markReservationSeated(UUID reservationId) {
+    public void markReservationSeated(Long reservationId) {
         ReservationDTO reservation = reservations.get(reservationId);
         if (reservation == null) {
             throw new IllegalArgumentException("Reservation not found: " + reservationId);
@@ -175,7 +221,7 @@ public class ReservationService {
         reservation.setUpdatedAt(LocalDateTime.now());
     }
 
-    public void markReservationCompleted(UUID reservationId) {
+    public void markReservationCompleted(Long reservationId) {
         ReservationDTO reservation = reservations.get(reservationId);
         if (reservation == null) {
             throw new IllegalArgumentException("Reservation not found: " + reservationId);
@@ -185,7 +231,7 @@ public class ReservationService {
         reservation.setUpdatedAt(LocalDateTime.now());
     }
 
-    public void markReservationNoShow(UUID reservationId) {
+    public void markReservationNoShow(Long reservationId) {
         ReservationDTO reservation = reservations.get(reservationId);
         if (reservation == null) {
             throw new IllegalArgumentException("Reservation not found: " + reservationId);
@@ -204,13 +250,13 @@ public class ReservationService {
         return !(newTime.isAfter(existingEnd) || newEnd.isBefore(existingTime));
     }
 
-    public boolean canCancelReservation(UUID reservationId) {
+    public boolean canCancelReservation(Long reservationId) {
         ReservationDTO reservation = reservations.get(reservationId);
         return reservation != null && 
                ("CONFIRMED".equals(reservation.getStatus()) || "SEATED".equals(reservation.getStatus()));
     }
 
-    public boolean canModifyReservation(UUID reservationId) {
+    public boolean canModifyReservation(Long reservationId) {
         ReservationDTO reservation = reservations.get(reservationId);
         if (reservation == null) return false;
         
@@ -222,17 +268,17 @@ public class ReservationService {
     }
 
     // Analytics methods
-    public int getTotalReservationsToday(UUID restaurantId) {
-        return getTodaysReservations(restaurantId).size();
+    public int getTotalReservationsToday(Long restaurantId) {
+        return getTodayReservations(restaurantId).size();
     }
 
-    public int getNoShowCount(UUID restaurantId, LocalDate date) {
+    public int getNoShowCount(Long restaurantId, LocalDate date) {
         return (int) getReservationsByDate(restaurantId, date).stream()
                 .filter(r -> "NO_SHOW".equals(r.getStatus()))
                 .count();
     }
 
-    public double getNoShowRate(UUID restaurantId, LocalDate date) {
+    public double getNoShowRate(Long restaurantId, LocalDate date) {
         List<ReservationDTO> dayReservations = getReservationsByDate(restaurantId, date);
         if (dayReservations.isEmpty()) return 0.0;
         
@@ -243,7 +289,7 @@ public class ReservationService {
         return (double) noShows / dayReservations.size() * 100;
     }
 
-    public List<LocalTime> getAvailableTimeSlots(UUID restaurantId, LocalDate date) {
+    public List<LocalTime> getAvailableTimeSlots(Long restaurantId, LocalDate date) {
         // Business hours: 10 AM to 10 PM, every 30 minutes
         List<LocalTime> allSlots = generateTimeSlots();
         List<ReservationDTO> existingReservations = getReservationsByDate(restaurantId, date);

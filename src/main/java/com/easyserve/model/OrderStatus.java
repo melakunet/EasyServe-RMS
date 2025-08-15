@@ -2,9 +2,11 @@
 package com.easyserve.model;
 
 public enum OrderStatus {
-    NEW,
+    PENDING,
+    CONFIRMED,
     PREPARING,
     READY,
-    COMPLETED,
-    CANCELLED
+    SERVED,
+    CANCELLED,
+    COMPLETED
 }

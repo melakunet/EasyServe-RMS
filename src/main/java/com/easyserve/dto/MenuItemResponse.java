@@ -2,6 +2,7 @@
 
 package com.easyserve.dto;
 import java.math.BigDecimal;
+import com.easyserve.dto.MenuItemResponse;
 
 
 import java.util.UUID;

@@ -2,19 +2,17 @@
 package com.easyserve.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.UUID;
 
 public class ReservationDTO {
 
-    private UUID id;
+    private Long id;
 
     @NotNull
-    private UUID restaurantId;
+    private Long restaurantId;
 
     @NotBlank
     private String customerFirstName;
@@ -65,7 +63,7 @@ public class ReservationDTO {
     // Constructors
     public ReservationDTO() {}
 
-    public ReservationDTO(UUID restaurantId, String customerFirstName, String customerLastName,
+    public ReservationDTO(Long restaurantId, String customerFirstName, String customerLastName,
                          String customerEmail, String customerPhone, LocalDate reservationDate,
                          LocalTime reservationTime, Integer partySize) {
         this.restaurantId = restaurantId;
@@ -83,11 +81,11 @@ public class ReservationDTO {
     }
 
     // Getters and Setters
-    public UUID getId() { return id; }
-    public void setId(UUID id) { this.id = id; }
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
-    public UUID getRestaurantId() { return restaurantId; }
-    public void setRestaurantId(UUID restaurantId) { this.restaurantId = restaurantId; }
+    public Long getRestaurantId() { return restaurantId; }
+    public void setRestaurantId(Long restaurantId) { this.restaurantId = restaurantId; }
 
     public String getCustomerFirstName() { return customerFirstName; }
     public void setCustomerFirstName(String customerFirstName) { this.customerFirstName = customerFirstName; }
@@ -155,12 +153,10 @@ public class ReservationDTO {
         return reservationDate + " at " + reservationTime;
     }
 
-    // Update timestamp when reservation is modified
     public void updateTimestamp() {
         this.updatedAt = LocalDateTime.now();
     }
 
-    // Validation helper
     public boolean isValidReservation() {
         return reservationDate != null && 
                reservationTime != null && 

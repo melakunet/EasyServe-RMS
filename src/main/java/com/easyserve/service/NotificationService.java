@@ -10,7 +10,6 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
-import java.util.UUID;
 
 @Service
 public class NotificationService {
@@ -35,12 +34,13 @@ public class NotificationService {
 
     @Async
     public void sendOrderStatusUpdate(String customerEmail, String customerPhone, 
-                                    UUID orderId, String status) {
+                                    Long orderId, String status) {
         String subject = "Order Update - " + orderId;
         String message = "Order status updated to: " + status;
         
         sendEmail(customerEmail, subject, message);
         sendSMS(customerPhone, "[EasyServe] " + message);
+        log.info("Order status update sent to {} for order #{}", customerEmail, orderId);
     }
 
     @Async
@@ -92,7 +92,7 @@ public class NotificationService {
 
     @Async
     public void sendOrderReadyNotification(String customerEmail, String customerPhone, 
-                                         UUID orderId, String orderType) {
+                                         Long orderId, String orderType) {
         String subject = "Order Ready - " + orderId;
         String message = "Your " + orderType.toLowerCase() + " order is ready!";
         
@@ -104,6 +104,7 @@ public class NotificationService {
         
         sendEmail(customerEmail, subject, message);
         sendSMS(customerPhone, "[EasyServe] " + message);
+        log.info("Order ready notification sent to {} for order #{}", customerEmail, orderId);
     }
 
     @Async
@@ -161,10 +162,35 @@ public class NotificationService {
     }
 
     @Async
-    public void notifyKitchenNewOrder(UUID orderId, String orderDetails) {
+    public void notifyKitchenNewOrder(Long orderId, String orderDetails) {
         log.info("=== KITCHEN NOTIFICATION ===");
         log.info("New Order: {}", orderId);
         log.info("Details: {}", orderDetails);
         log.info("===========================");
+    }
+
+    // Additional methods needed by OrderService and other services
+    @Async
+    public void sendReservationConfirmation(String customerEmail, String customerPhone, 
+                                          Long reservationId, String restaurantName, 
+                                          String dateTime, int partySize) {
+        String subject = "Reservation Confirmed at " + restaurantName;
+        String message = String.format("Your reservation #%d for %d people on %s is confirmed!", 
+                                      reservationId, partySize, dateTime);
+        
+        sendEmail(customerEmail, subject, message);
+        if (customerPhone != null && !customerPhone.isEmpty()) {
+            sendSMS(customerPhone, "[EasyServe] " + message);
+        }
+        log.info("Reservation confirmation sent to {} for reservation #{}", customerEmail, reservationId);
+    }
+
+    @Async
+    public void sendWelcomeNotification(String customerEmail, String customerName) {
+        String subject = "Welcome to EasyServe!";
+        String message = String.format("Welcome to EasyServe, %s! Thank you for joining us.", customerName);
+        
+        sendEmail(customerEmail, subject, message);
+        log.info("Welcome notification sent to {} ({})", customerName, customerEmail);
     }
 }

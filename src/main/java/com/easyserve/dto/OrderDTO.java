@@ -1,22 +1,26 @@
 
 package com.easyserve.dto;
 
+import com.easyserve.model.OrderStatus;
+import com.easyserve.model.OrderType;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.UUID;
 
 public class OrderDTO {
 
-    private UUID id;
+    private Long id;
 
     @NotNull
-    private UUID restaurantId;
+    private Long restaurantId;
 
-    // Replace CustomerDTO with simple fields
+    // Customer fields
+    @NotNull
+    private Long customerId;
+
     @NotBlank
     private String customerName;
     
@@ -25,14 +29,11 @@ public class OrderDTO {
     
     private String customerPhone;
 
-    @NotBlank
-    @Pattern(regexp = "^(PICKUP|DELIVERY)$", message = "Order type must be PICKUP or DELIVERY")
-    private String orderType;
+    @NotNull(message = "Order type is required")
+    private OrderType orderType;
 
-    @NotBlank
-    @Pattern(regexp = "^(NEW|CONFIRMED|PREPARING|READY|COMPLETED|CANCELLED)$", 
-             message = "Status must be NEW, CONFIRMED, PREPARING, READY, COMPLETED, or CANCELLED")
-    private String status;
+    @NotNull(message = "Order status is required")
+    private OrderStatus status;
 
     @NotEmpty
     @Valid
@@ -64,12 +65,28 @@ public class OrderDTO {
     // Constructors
     public OrderDTO() {}
 
-    // Getters and Setters
-    public UUID getId() { return id; }
-    public void setId(UUID id) { this.id = id; }
+    public OrderDTO(Long restaurantId, Long customerId, String customerName, String customerEmail, 
+                   String customerPhone, OrderType orderType) {
+        this.restaurantId = restaurantId;
+        this.customerId = customerId;
+        this.customerName = customerName;
+        this.customerEmail = customerEmail;
+        this.customerPhone = customerPhone;
+        this.orderType = orderType;
+        this.status = OrderStatus.PENDING;
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
 
-    public UUID getRestaurantId() { return restaurantId; }
-    public void setRestaurantId(UUID restaurantId) { this.restaurantId = restaurantId; }
+    // Getters and Setters
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+
+    public Long getRestaurantId() { return restaurantId; }
+    public void setRestaurantId(Long restaurantId) { this.restaurantId = restaurantId; }
+
+    public Long getCustomerId() { return customerId; }
+    public void setCustomerId(Long customerId) { this.customerId = customerId; }
 
     public String getCustomerName() { return customerName; }
     public void setCustomerName(String customerName) { this.customerName = customerName; }
@@ -80,11 +97,11 @@ public class OrderDTO {
     public String getCustomerPhone() { return customerPhone; }
     public void setCustomerPhone(String customerPhone) { this.customerPhone = customerPhone; }
 
-    public String getOrderType() { return orderType; }
-    public void setOrderType(String orderType) { this.orderType = orderType; }
+    public OrderType getOrderType() { return orderType; }
+    public void setOrderType(OrderType orderType) { this.orderType = orderType; }
 
-    public String getStatus() { return status; }
-    public void setStatus(String status) { this.status = status; }
+    public OrderStatus getStatus() { return status; }
+    public void setStatus(OrderStatus status) { this.status = status; }
 
     public List<OrderItemDTO> getItems() { return items; }
     public void setItems(List<OrderItemDTO> items) { this.items = items; }
@@ -115,32 +132,48 @@ public class OrderDTO {
 
     // Business logic methods
     public boolean isPickupOrder() {
-        return "PICKUP".equals(orderType);
+        return OrderType.PICKUP.equals(orderType);
     }
 
     public boolean isDeliveryOrder() {
-        return "DELIVERY".equals(orderType);
+        return OrderType.DELIVERY.equals(orderType);
+    }
+
+    public boolean isDineInOrder() {
+        return OrderType.DINE_IN.equals(orderType);
     }
 
     public boolean isActive() {
-        return "NEW".equals(status) || "CONFIRMED".equals(status) || "PREPARING".equals(status);
+        return OrderStatus.PENDING.equals(status) || 
+               OrderStatus.CONFIRMED.equals(status) || 
+               OrderStatus.PREPARING.equals(status);
     }
 
     public boolean isCompleted() {
-        return "COMPLETED".equals(status) || "CANCELLED".equals(status);
+        return OrderStatus.COMPLETED.equals(status) || 
+               OrderStatus.CANCELLED.equals(status);
     }
 
-    // Nested OrderItemDTO class with getters/setters
+    public boolean canBeCancelled() {
+        return OrderStatus.PENDING.equals(status) || 
+               OrderStatus.CONFIRMED.equals(status);
+    }
+
+    public int getTotalItems() {
+        return items != null ? items.stream().mapToInt(OrderItemDTO::getQuantity).sum() : 0;
+    }
+
+    // Nested OrderItemDTO class
     public static class OrderItemDTO {
 
         @NotNull
-        private UUID menuItemId;
+        private Long menuItemId;
 
         @NotBlank
         private String itemName;
 
         @Min(1)
-        private int quantity;
+        private Integer quantity;
 
         @DecimalMin("0.00")
         private BigDecimal unitPrice;
@@ -154,7 +187,7 @@ public class OrderDTO {
         // Constructors
         public OrderItemDTO() {}
 
-        public OrderItemDTO(UUID menuItemId, String itemName, int quantity, BigDecimal unitPrice) {
+        public OrderItemDTO(Long menuItemId, String itemName, Integer quantity, BigDecimal unitPrice) {
             this.menuItemId = menuItemId;
             this.itemName = itemName;
             this.quantity = quantity;
@@ -163,14 +196,14 @@ public class OrderDTO {
         }
 
         // Getters and Setters
-        public UUID getMenuItemId() { return menuItemId; }
-        public void setMenuItemId(UUID menuItemId) { this.menuItemId = menuItemId; }
+        public Long getMenuItemId() { return menuItemId; }
+        public void setMenuItemId(Long menuItemId) { this.menuItemId = menuItemId; }
 
         public String getItemName() { return itemName; }
         public void setItemName(String itemName) { this.itemName = itemName; }
 
-        public int getQuantity() { return quantity; }
-        public void setQuantity(int quantity) { this.quantity = quantity; }
+        public Integer getQuantity() { return quantity; }
+        public void setQuantity(Integer quantity) { this.quantity = quantity; }
 
         public BigDecimal getUnitPrice() { return unitPrice; }
         public void setUnitPrice(BigDecimal unitPrice) { this.unitPrice = unitPrice; }
@@ -183,7 +216,7 @@ public class OrderDTO {
 
         // Calculate total price
         public void calculateTotalPrice() {
-            if (unitPrice != null && quantity > 0) {
+            if (unitPrice != null && quantity != null && quantity > 0) {
                 this.totalPrice = unitPrice.multiply(BigDecimal.valueOf(quantity));
             }
         }
