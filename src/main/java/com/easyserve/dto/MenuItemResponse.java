@@ -1,14 +1,12 @@
 
 
 package com.easyserve.dto;
+
 import java.math.BigDecimal;
-import com.easyserve.dto.MenuItemResponse;
-
-
 import java.util.UUID;
 
 public class MenuItemResponse {
-    private UUID id;
+    private Long id;
     private String name;
     private String description;
     private BigDecimal price;
@@ -21,7 +19,7 @@ public class MenuItemResponse {
     public MenuItemResponse() {}
     
     // Constructor with all fields
-    public MenuItemResponse(UUID id, String name, String description, BigDecimal price, 
+    public MenuItemResponse(Long id, String name, String description, BigDecimal price, 
                            String category, boolean available, String imageUrl, Integer preparationTime) {
         this.id = id;
         this.name = name;
@@ -34,12 +32,8 @@ public class MenuItemResponse {
     }
     
     // Getters and Setters
-    public UUID getId() { 
-        return id; 
-    }
-    
-    public void setId(UUID id) { 
-        this.id = id; 
+    public Long getId() {
+        return id;
     }
     
     public String getName() { 
@@ -64,6 +58,9 @@ public class MenuItemResponse {
     
     public void setPrice(BigDecimal price) { 
         this.price = price; 
+    }
+     public void setId(Long id) {
+        this.id = id;
     }
     
     public String getCategory() { 

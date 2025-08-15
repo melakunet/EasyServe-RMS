@@ -13,6 +13,11 @@ public class KitchenStatsResponse {
     private int completedTodayOrders;
     private Duration averagePreparationTime;
     private double efficiency;
+    private int totalActiveOrders;
+private int ordersInPreparation;
+private int ordersReady;
+private int ordersCompleted;
+private int totalOrdersToday;
     
     // Default constructor
     public KitchenStatsResponse() {}
@@ -67,4 +72,44 @@ public class KitchenStatsResponse {
     public void setEfficiency(double efficiency) { 
         this.efficiency = efficiency; 
     }
+
+    public int getTotalActiveOrders() {
+    return totalActiveOrders;
+}
+
+public void setTotalActiveOrders(int totalActiveOrders) {
+    this.totalActiveOrders = totalActiveOrders;
+}
+
+public int getOrdersInPreparation() {
+    return ordersInPreparation;
+}
+
+public void setOrdersInPreparation(int ordersInPreparation) {
+    this.ordersInPreparation = ordersInPreparation;
+}
+
+public int getOrdersReady() {
+    return ordersReady;
+}
+
+public void setOrdersReady(int ordersReady) {
+    this.ordersReady = ordersReady;
+}
+
+public int getOrdersCompleted() {
+    return ordersCompleted;
+}
+
+public void setOrdersCompleted(int ordersCompleted) {
+    this.ordersCompleted = ordersCompleted;
+}
+
+public int getTotalOrdersToday() {
+    return totalOrdersToday;
+}
+
+public void setTotalOrdersToday(int totalOrdersToday) {
+    this.totalOrdersToday = totalOrdersToday;
+}
 }
