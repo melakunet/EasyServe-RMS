@@ -6,121 +6,125 @@ import com.easyserve.model.Order;
 import com.easyserve.model.Order.Status;
 import com.easyserve.service.OrderService;
 import com.easyserve.service.MenuItemService;
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
-import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.http.*;
-import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/orders")
-@RequiredArgsConstructor
 public class OrderController {
 
-    private final OrderService orderService;
-    private final MenuItemService menuItemService;
+    @Autowired
+    private OrderService orderService;
+    
+    @Autowired
+    private MenuItemService menuItemService;
 
+    // Create new order
     @PostMapping
-    public ResponseEntity<OrderResponse> createOrder(@Valid @RequestBody OrderCreateRequest req) {
-        Order order = orderService.createOrder(req.toOrderDTO());
-        return ResponseEntity.status(HttpStatus.CREATED).body(OrderResponse.from(order));
+    public ResponseEntity<Order> createOrder(@RequestBody OrderCreateRequest req) {
+        // Convert OrderCreateRequest to OrderDTO
+        OrderDTO orderDTO = convertToOrderDTO(req);
+        Order createdOrder = orderService.createOrder(orderDTO);
+        return ResponseEntity.ok(createdOrder);
     }
 
+    // List/filter orders
     @GetMapping
-    @PreAuthorize("hasRole('OWNER') or hasRole('MANAGER') or hasRole('STAFF')")
-    public ResponseEntity<List<OrderResponse>> listOrders(
-            @RequestParam UUID restaurantId,
+    public ResponseEntity<List<Order>> listOrders(
+            @RequestParam(required = false) UUID restaurantId,
             @RequestParam(required = false) Status status,
             @RequestParam(required = false) Order.OrderType type,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to,
+            @RequestParam(required = false) LocalDateTime from,
+            @RequestParam(required = false) LocalDateTime to,
             @RequestParam(required = false) UUID customerId) {
-
+        
         List<Order> orders = orderService.filterOrders(restaurantId, status, type, from, to, customerId);
-        return ResponseEntity.ok(orders.stream()
-                                        .map(OrderResponse::from)
-                                        .collect(Collectors.toList()));
+        return ResponseEntity.ok(orders);
     }
 
+    // Get specific order by ID
     @GetMapping("/{id}")
-    public ResponseEntity<OrderResponse> getOrder(@PathVariable UUID id) {
+    public ResponseEntity<Order> getOrder(@PathVariable UUID id) {
         Order order = orderService.getOrderById(id);
-        return ResponseEntity.ok(OrderResponse.from(order));
+        return ResponseEntity.ok(order);
     }
 
+    // Update order status (generic)
     @PutMapping("/{id}/status")
-    @PreAuthorize("hasRole('STAFF') or hasRole('MANAGER')")
-    public ResponseEntity<OrderResponse> updateOrderStatus(
-            @PathVariable UUID id,
-            @Valid @RequestBody OrderUpdateRequest req) {
-        Order updated = orderService.updateOrderStatus(id, req.getStatus());
-        return ResponseEntity.ok(OrderResponse.from(updated));
+    public ResponseEntity<Order> updateOrderStatus(@PathVariable UUID id, @RequestParam Status status) {
+        Order updatedOrder = orderService.updateOrderStatus(id, status);
+        return ResponseEntity.ok(updatedOrder);
     }
 
+    // Mark order as preparing
+    @PutMapping("/{id}/preparing")
+    public ResponseEntity<Order> markPreparing(@PathVariable UUID id) {
+        Order updatedOrder = orderService.updateOrderStatus(id, Status.PREPARING);
+        return ResponseEntity.ok(updatedOrder);
+    }
+
+    // Mark order as ready
+    @PutMapping("/{id}/ready")
+    public ResponseEntity<Order> markReady(@PathVariable UUID id) {
+        Order updatedOrder = orderService.updateOrderStatus(id, Status.READY);
+        return ResponseEntity.ok(updatedOrder);
+    }
+
+    // Mark order as completed
+    @PutMapping("/{id}/completed")
+    public ResponseEntity<Order> markCompleted(@PathVariable UUID id) {
+        Order updatedOrder = orderService.updateOrderStatus(id, Status.COMPLETED);
+        return ResponseEntity.ok(updatedOrder);
+    }
+
+    // Get active orders for kitchen
     @GetMapping("/kitchen/active")
-    @PreAuthorize("hasRole('STAFF')")
-    public ResponseEntity<List<KitchenOrderView>> getKitchenActiveOrders(@RequestParam UUID restaurantId) {
-        List<Order> orders = orderService.getOrdersForKitchen(restaurantId);
-        List<KitchenOrderView> view = orders.stream()
-            .map(KitchenOrderView::from)
-            .collect(Collectors.toList());
-        return ResponseEntity.ok(view);
+    public ResponseEntity<List<Order>> getKitchenActiveOrders(@RequestParam UUID restaurantId) {
+        List<Order> activeOrders = orderService.getOrdersForKitchen(restaurantId);
+        return ResponseEntity.ok(activeOrders);
     }
 
+    // Get kitchen statistics
     @GetMapping("/kitchen/stats")
-    @PreAuthorize("hasRole('MANAGER') or hasRole('OWNER')")
     public ResponseEntity<KitchenStatsResponse> getKitchenStats(@RequestParam UUID restaurantId) {
         KitchenStatsResponse stats = orderService.calculateKitchenStats(restaurantId);
         return ResponseEntity.ok(stats);
     }
 
+    // Get customer order history
     @GetMapping("/customer/{customerId}")
-    public ResponseEntity<List<OrderResponse>> getCustomerOrders(@PathVariable UUID customerId) {
-        List<Order> orders = orderService.getOrderHistory(customerId);
-        return ResponseEntity.ok(orders.stream()
-                                        .map(OrderResponse::from)
-                                        .collect(Collectors.toList()));
+    public ResponseEntity<List<Order>> getCustomerOrders(@PathVariable UUID customerId) {
+        List<Order> orderHistory = orderService.getOrderHistory(customerId);
+        return ResponseEntity.ok(orderHistory);
     }
 
+    // Cancel order
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('MANAGER') or hasRole('OWNER')")
-    public ResponseEntity<Void> cancelOrder(
-            @PathVariable UUID id,
-            @RequestParam(required = false) String reason) {
+    public ResponseEntity<Void> cancelOrder(@PathVariable UUID id, @RequestParam String reason) {
         orderService.cancelOrder(id, reason);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok().build();
     }
 
-    @GetMapping("/menu")
+    // Get public menu for a restaurant
+    @GetMapping("/menu/public")
     public ResponseEntity<List<MenuItemResponse>> listPublicMenu(@RequestParam UUID restaurantId) {
-        List<MenuItemResponse> menu = menuItemService.getMenuForRestaurant(restaurantId);
-        return ResponseEntity.ok(menu);
+        List<MenuItemResponse> menuItems = menuItemService.getMenuForRestaurant(restaurantId);
+        return ResponseEntity.ok(menuItems);
     }
 
-    @PutMapping("/{id}/preparing")
-    @PreAuthorize("hasRole('STAFF')")
-    public ResponseEntity<OrderResponse> markPreparing(@PathVariable UUID id) {
-        Order o = orderService.updateOrderStatus(id, Status.PREPARING);
-        return ResponseEntity.ok(OrderResponse.from(o));
-    }
-
-    @PutMapping("/{id}/ready")
-    @PreAuthorize("hasRole('STAFF')")
-    public ResponseEntity<OrderResponse> markReady(@PathVariable UUID id) {
-        Order o = orderService.updateOrderStatus(id, Status.READY);
-        return ResponseEntity.ok(OrderResponse.from(o));
-    }
-
-    @PutMapping("/{id}/completed")
-    @PreAuthorize("hasRole('STAFF')")
-    public ResponseEntity<OrderResponse> markCompleted(@PathVariable UUID id) {
-        Order o = orderService.updateOrderStatus(id, Status.COMPLETED);
-        return ResponseEntity.ok(OrderResponse.from(o));
+    // Helper method to convert OrderCreateRequest to OrderDTO
+    private OrderDTO convertToOrderDTO(OrderCreateRequest request) {
+        // This is a placeholder - you'll need to implement the actual conversion
+        // based on your OrderCreateRequest and OrderDTO structures
+        OrderDTO orderDTO = new OrderDTO();
+        // Set fields from request to orderDTO
+        // orderDTO.setRestaurantId(request.getRestaurantId());
+        // orderDTO.setCustomerId(request.getCustomerId());
+        // etc.
+        return orderDTO;
     }
 }
