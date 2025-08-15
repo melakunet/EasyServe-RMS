@@ -6,3 +6,4 @@ target/
 .vscode/
 application-dev.properties
 
+*.jar.original
