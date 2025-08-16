@@ -1,83 +1,84 @@
+# 🍽️ EasyServe Restaurant Management System
 
-🍽️ EasyServe Restaurant Management System
+**EasyServe RMS** is a backend system for managing restaurant operations including orders, menu items, customer registrations, and reservations. This Java Spring Boot application is built with RESTful APIs and supports modern service-oriented architecture.
 
-EasyServe RMS is a backend system for managing restaurant operations including orders, menu items, customer registrations, and reservations. This Java Spring Boot application is built with RESTful APIs and supports modern service-oriented architecture.
+---
 
-🚀 Features
+## 🚀 Features
 
-👤 Customer registration and authentication
+- 👤 Customer registration and authentication  
+- 🛒 Order creation, tracking, and updates  
+- 🍔 Menu item management  
+- 🍽️ Reservation handling  
+- 📊 Kitchen statistics and analytics  
+- 📧 Notification system (mocked for MVP)  
+- 🔒 Basic security integration  
+- ✅ DTO-layered architecture  
 
-🛒 Order creation, tracking, and updates
+---
 
-🍔 Menu item management
+## 🛠️ Tech Stack
 
-🍽️ Reservation handling
+- Java 17  
+- Spring Boot  
+- Maven  
+- Lombok  
+- JUnit 5 (for tests)  
+- In-memory Storage (Map, AtomicLong)  
 
-📊 Kitchen statistics and analytics
+---
 
-📧 Notification system (mocked for MVP)
+## 🏁 Getting Started
 
-🔒 Basic security integration
+### 📦 Prerequisites
 
-✅ DTO-layered architecture
+- Java 17+  
+- Maven 3.6+  
+- Git (optional)  
 
-🛠️ Tech Stack
+---
 
-Java 17
+### 🔧 Setup
 
-Spring Boot
-
-Maven
-
-Lombok
-
-JUnit 5 (for tests)
-
-In-memory Storage (Map, AtomicLong)
-
-🏁 Getting Started
-📦 Prerequisites
-
-Java 17+
-
-Maven 3.6+
-
-Git (optional)
-
-🔧 Setup
-
-Clone the repository
-
+```bash
+# Clone the repository
 git clone https://github.com/melakuneet/EasyServe-RMS.git
 cd EasyServe-RMS
 
-
-Build the project
-
+# Build the project
 mvn clean package -U
 
-
-Run the application
-
+# Run the application
 java -jar target/easyserve-restaurant-1.0.0.jar
 
-🔓 Public API Endpoint
+
+## 🔓 Public API Endpoint
 
 A publicly accessible endpoint has been added for health checks or testing:
 
-GET /api/public
-Response: "Hello from Public API!"
+**GET** `/api/public`  
+**Response:** `"Hello from Public API!"`
 
-This endpoint is open and does not require authentication. Useful for verifying if the service is up and running.
+This endpoint is open and does not require authentication.
 
-🧪 Running Tests
+
+## 🧪 Running Tests
 
 To run the test suite (JUnit 5):
 
+```bash
 mvn test
 
 
-Tests cover core business logic, DTO validation, and basic service-layer functionality. Additional tests can be added under src/test/java.
+
+#### 📂 Project Structure Section
+
+Use triple backticks with `text` or leave it unannotated for directory structures:
+
+```markdown
+## 📂 Project Structure
+
+
 
 📂 Project Structure
 src/main/java/com/easyserve/
@@ -90,15 +91,17 @@ src/main/java/com/easyserve/
 ├── service/              # Core business logic
 └── EasyServeApplication.java  # Main Spring Boot class
 
-🔍 API Endpoints Overview
-Endpoint	Method	Description
-/api/register	POST	Register a new user
-/api/orders	POST	Create new order
-/api/orders/{id}/status	PUT	Update order status
-/api/kitchen/stats	GET	View kitchen analytics
-/api/menu	GET	View menu items
-/api/reservations	POST	Create reservation
-🧭 Swagger/OpenAPI
+## 🔍 API Endpoints Overview
+
+| Endpoint                | Method | Description             |
+|-------------------------|--------|-------------------------|
+| `/api/register`         | POST   | Register a new user     |
+| `/api/orders`           | POST   | Create new order        |
+| `/api/orders/{id}/status` | PUT | Update order status     |
+| `/api/kitchen/stats`    | GET    | View kitchen analytics  |
+| `/api/menu`             | GET    | View menu items         |
+| `/api/reservations`     | POST   | Create reservation      |
+
 
 Swagger/OpenAPI documentation can be integrated using Springdoc.
 
