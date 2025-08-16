@@ -10,7 +10,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.UUID;
+import jakarta.persistence.GenerationType;
 
 @Entity
 @Table(name = "orders", indexes = {
@@ -26,8 +26,8 @@ import java.util.UUID;
 public class Order {
 
     @Id
-    @GeneratedValue
-    private UUID id;
+@GeneratedValue(strategy = GenerationType.IDENTITY)
+private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "restaurant_id", nullable = false)

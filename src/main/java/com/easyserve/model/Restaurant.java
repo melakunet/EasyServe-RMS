@@ -10,7 +10,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.UUID;
+import jakarta.persistence.GenerationType;
 
 @Entity
 @Table(name = "restaurants", indexes = {
@@ -25,8 +25,8 @@ import java.util.UUID;
 public class Restaurant {
 
     @Id
-    @GeneratedValue
-    private UUID id;
+@GeneratedValue(strategy = GenerationType.IDENTITY)
+private Long id;
 
     @NotBlank
     @Size(max = 100)

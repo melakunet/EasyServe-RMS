@@ -11,7 +11,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-
+import jakarta.persistence.GenerationType;
 @Entity
 @Table(name = "reservations", indexes = {
         @Index(name = "idx_reservation_restaurant", columnList = "restaurant_id"),

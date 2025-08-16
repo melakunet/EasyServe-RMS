@@ -9,6 +9,7 @@
 /Users/etefworkiemelaku/EasyServe-RMS/src/main/java/com/easyserve/controller/OrderController.java
 /Users/etefworkiemelaku/EasyServe-RMS/src/main/java/com/easyserve/dto/OrderDTO.java
 /Users/etefworkiemelaku/EasyServe-RMS/src/main/java/com/easyserve/service/MenuItemService.java
+/Users/etefworkiemelaku/EasyServe-RMS/src/main/java/com/easyserve/security/SecurityConfig.java
 /Users/etefworkiemelaku/EasyServe-RMS/src/main/java/com/easyserve/repository/OrderRepository.java
 /Users/etefworkiemelaku/EasyServe-RMS/src/main/java/com/easyserve/config/WebConfig.java
 /Users/etefworkiemelaku/EasyServe-RMS/src/main/java/com/easyserve/model/ReservationStatus.java
@@ -43,7 +44,6 @@
 /Users/etefworkiemelaku/EasyServe-RMS/src/main/java/com/easyserve/model/Restaurant.java
 /Users/etefworkiemelaku/EasyServe-RMS/src/main/java/com/easyserve/config/DatabaseConfig.java
 /Users/etefworkiemelaku/EasyServe-RMS/src/main/java/com/easyserve/service/ReservationService.java
-/Users/etefworkiemelaku/EasyServe-RMS/src/main/java/com/easyserve/config/SecurityConfig.java
 /Users/etefworkiemelaku/EasyServe-RMS/src/main/java/com/easyserve/security/JwtTokenProvider.java
 /Users/etefworkiemelaku/EasyServe-RMS/src/main/java/com/easyserve/controller/AuthController.java
 /Users/etefworkiemelaku/EasyServe-RMS/src/main/java/com/easyserve/dto/ReservationUpdateRequest.java

@@ -21,9 +21,9 @@ com/easyserve/service/UserService.class
 com/easyserve/dto/KitchenStatsResponse.class
 com/easyserve/dto/OrderDTO$OrderItemDTO.class
 com/easyserve/config/DatabaseConfig.class
-com/easyserve/config/SecurityConfig.class
 com/easyserve/security/UserDetailsServiceImpl.class
 com/easyserve/repository/RestaurantRepository.class
+com/easyserve/security/SecurityConfig.class
 com/easyserve/config/WebConfig.class
 com/easyserve/service/MenuItemService.class
 com/easyserve/dto/LoginResponse$UserInfo$UserInfoBuilder.class

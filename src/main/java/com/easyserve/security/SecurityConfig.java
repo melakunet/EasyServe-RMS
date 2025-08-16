@@ -1,11 +1,10 @@
 
-package com.easyserve.config;
+package com.easyserve.security;
 
 import com.easyserve.security.UserDetailsServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -18,6 +17,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
@@ -58,25 +58,21 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 // Public endpoints - no authentication required
-                .requestMatchers(
-                    "/api/public/**",
-                    "/api/widget/**",
-                    "/api/auth/login",
-                    "/api/auth/register",
-                    "/api/menu/**",
-                    "/h2-console/**"
-                ).permitAll()
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/public/**")).permitAll()
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/widget/**")).permitAll()
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/auth/login")).permitAll()
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/auth/register")).permitAll()
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/menu/**")).permitAll()
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/h2-console/**")).permitAll()
                 
-                // Admin endpoints - require ADMIN role
-                .requestMatchers("/api/admin/**").hasRole("OWNER")
+                // Admin endpoints - require OWNER role
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/admin/**")).hasRole("OWNER")
                 
                 // Protected endpoints - require authentication
-                .requestMatchers(
-                    "/api/reservations/**", 
-                    "/api/orders/**",
-                    "/api/users/**",
-                    "/api/dashboard/**"
-                ).authenticated()
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/reservations/**")).authenticated()
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/orders/**")).authenticated()
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/users/**")).authenticated()
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/dashboard/**")).authenticated()
                 
                 // Default: deny all other requests
                 .anyRequest().denyAll()

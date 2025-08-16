@@ -10,10 +10,10 @@ import org.springframework.stereotype.Repository;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
+
 
 @Repository
-public interface RestaurantRepository extends JpaRepository<Restaurant, UUID> {
+public interface RestaurantRepository extends JpaRepository<Restaurant, Long> {
 
     Optional<Restaurant> findByEmail(String email);
 
@@ -23,7 +23,7 @@ public interface RestaurantRepository extends JpaRepository<Restaurant, UUID> {
 
     boolean existsByEmail(String email);
 
-    Optional<Restaurant> findByIdAndIsActiveTrue(UUID id);
+    Optional<Restaurant> findByIdAndIsActiveTrue(Long id);
 
     @Query("SELECT COUNT(r) FROM Restaurant r WHERE r.isActive = true")
     long countActiveRestaurants();

@@ -11,7 +11,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
-import java.util.UUID;
+import jakarta.persistence.GenerationType;
 
 @Entity
 @Table(name = "users", uniqueConstraints = {
@@ -25,8 +25,8 @@ import java.util.UUID;
 public class User {
 
     @Id
-    @GeneratedValue
-    private UUID id;
+@GeneratedValue(strategy = GenerationType.IDENTITY)
+private Long id;
 
     @Email
     @NotBlank

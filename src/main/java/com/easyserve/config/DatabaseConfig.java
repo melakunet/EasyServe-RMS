@@ -21,7 +21,6 @@ import java.util.Properties;
 
 @Configuration
 @PropertySource("classpath:application-${spring.profiles.active:dev}.properties")
-@EnableJpaRepositories(basePackages = "com.easyserve.repository")
 @EnableTransactionManagement
 public class DatabaseConfig {
 

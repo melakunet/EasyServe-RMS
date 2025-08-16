@@ -8,10 +8,13 @@ import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.util.*;
 import java.util.Date;
 import java.util.UUID;
+
+import java.nio.charset.StandardCharsets;
 
 @Component
 public class JwtTokenProvider {
@@ -27,11 +30,11 @@ public class JwtTokenProvider {
 
     private Key secretKey;
 
-    @PostConstruct
-    public void init() {
-        byte[] decoded = Base64.getDecoder().decode(secretKeyBase64);
-        this.secretKey = Keys.hmacShaKeyFor(decoded);
-    }
+@PostConstruct
+public void init() {
+    // Use the secret directly without Base64 decoding
+    this.secretKey = Keys.hmacShaKeyFor(secretKeyBase64.getBytes(StandardCharsets.UTF_8));
+}
 
     public String generateToken(User user, boolean refreshToken) {
         long now = System.currentTimeMillis();
