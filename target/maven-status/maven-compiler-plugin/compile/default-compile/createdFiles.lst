@@ -62,5 +62,6 @@ com/easyserve/dto/LoginRequest.class
 com/easyserve/dto/ReservationDTO.class
 com/easyserve/model/Order.class
 com/easyserve/service/NotificationService.class
+com/easyserve/controller/PublicController.class
 com/easyserve/model/User$Role.class
 com/easyserve/model/OrderType.class

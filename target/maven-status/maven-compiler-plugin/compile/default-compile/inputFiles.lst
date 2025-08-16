@@ -21,6 +21,7 @@
 /Users/etefworkiemelaku/EasyServe-RMS/src/main/java/com/easyserve/dto/OrderResponse.java
 /Users/etefworkiemelaku/EasyServe-RMS/src/main/java/com/easyserve/dto/RegisterRequest.java
 /Users/etefworkiemelaku/EasyServe-RMS/src/main/java/com/easyserve/dto/CustomerDTO.java
+/Users/etefworkiemelaku/EasyServe-RMS/src/main/java/com/easyserve/controller/PublicController.java
 /Users/etefworkiemelaku/EasyServe-RMS/src/main/java/com/easyserve/dto/OrderItemDTO.java
 /Users/etefworkiemelaku/EasyServe-RMS/src/main/java/com/easyserve/model/User.java
 /Users/etefworkiemelaku/EasyServe-RMS/src/main/java/com/easyserve/service/OrderService.java
