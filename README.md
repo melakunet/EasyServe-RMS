@@ -1,3 +1,4 @@
+
 🍽️ EasyServe Restaurant Management System
 
 EasyServe RMS is a backend system for managing restaurant operations including orders, menu items, customer registrations, and reservations. This Java Spring Boot application is built with RESTful APIs and supports modern service-oriented architecture.
@@ -44,14 +45,20 @@ Maven 3.6+
 Git (optional)
 
 🔧 Setup
-# Clone the repository
+
+Clone the repository
+
 git clone https://github.com/melakuneet/EasyServe-RMS.git
 cd EasyServe-RMS
 
-# Build the project
+
+Build the project
+
 mvn clean package -U
 
-# Run the application
+
+Run the application
+
 java -jar target/easyserve-restaurant-1.0.0.jar
 
 🔓 Public API Endpoint
@@ -70,7 +77,7 @@ To run the test suite (JUnit 5):
 mvn test
 
 
-Tests cover core business logic, DTO validation, and basic service-layer functionality. Additional tests can be added in src/test/java.
+Tests cover core business logic, DTO validation, and basic service-layer functionality. Additional tests can be added under src/test/java.
 
 📂 Project Structure
 src/main/java/com/easyserve/
@@ -91,8 +98,9 @@ Endpoint	Method	Description
 /api/kitchen/stats	GET	View kitchen analytics
 /api/menu	GET	View menu items
 /api/reservations	POST	Create reservation
+🧭 Swagger/OpenAPI
 
-🧭 Swagger/OpenAPI documentation can be integrated using Springdoc.
+Swagger/OpenAPI documentation can be integrated using Springdoc.
 
 👨‍💻 Author
 
